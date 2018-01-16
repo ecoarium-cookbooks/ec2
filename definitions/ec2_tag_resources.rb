@@ -10,17 +10,27 @@ define :ec2_tag_resources do
 	  aws_access_key _aws_access_key
 	  aws_secret_access_key _aws_secret_access_key
 	  tags(instance_tags)
-	end 
+	end
 
-	ec2 = RightAws::Ec2.new(_aws_access_key, _aws_secret_access_key)
-	  
-	instance_info = ec2.describe_instances(params[:instance_id])
+  ebs_volume_resource = aws_ebs_volume('fake') do
+    aws_access_key _aws_access_key
+    aws_secret_access_key _aws_secret_access_key
+    action :nothing
+  end
 
-	instance_info[0][:block_device_mappings].each do |device|
+  ebs_volume_provider = ebs_volume_resource.provider_for_action(:create)
+
+  volumes_result = ebs_volume_provider.ec2.describe_volumes(
+    filters: [
+      { name: 'attachment.instance-id', values: [params[:instance_id]] },
+    ]
+  )
+
+	volumes_result.volumes.each do |volume|
 		volume_tags = {} || params[:tags]
-		volume_tags["Name"] = "#{params[:name]}- #{device[:device_name]}"
-		
-	  aws_resource_tag device[:ebs_volume_id] do
+		volume_tags["Name"] = "#{params[:name]}- #{volume.attachments.first.device}"
+
+	  aws_resource_tag volume.volume_id do
 	    aws_access_key _aws_access_key
 	    aws_secret_access_key _aws_secret_access_key
 	    tags(volume_tags)

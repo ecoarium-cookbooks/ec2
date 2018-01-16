@@ -21,7 +21,7 @@ define :ec2_ebs_volume do
     aws_secret_access_key _aws_secret_access_key
     size _volume_size
     volume_type _volume_type
-    iops _volume_iops
+    piops _volume_iops
     device _volume_device
     action [ :create, :attach ]
   end
